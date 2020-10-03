@@ -1,6 +1,7 @@
 #include <Client.hpp>
 #include <cstdlib>
 #include <iostream>
+#include <boost/version.hpp>
 
 typedef unsigned int uint;
 
@@ -50,6 +51,17 @@ bool Client::connectPort(const std::string& device, const size_t baudrate) {
             asio::serial_port::character_size(8)));
         port.set_option(
             asio::serial_port::stop_bits(asio::serial_port::stop_bits::one));
+	if(BOOST_VERSION < 106600)
+  	{
+    		// NOTE(Kartik): Set serial port to "raw" mode. This is done in Boost but
+    		// until v1.66.0 there was a bug which didn't enable the relevant code,
+    		// fixed by commit: https://github.com/boostorg/asio/commit/619cea4356
+    		int fd = port.native_handle();
+    		termios tio;
+    		tcgetattr(fd, &tio);
+    		cfmakeraw(&tio);
+    		tcsetattr(fd, TCSANOW, &tio);
+  	}
     }
     catch(const std::system_error& e) {
         const int ecode = e.code().value();
